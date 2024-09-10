@@ -1,0 +1,270 @@
+#!/usr/local/share/conda_envs/tesspatrol_conda/bin/python
+
+from astropy.wcs import WCS
+from astropy.io import fits
+from glob import glob
+import sqlalchemy
+import subprocess
+import traceback
+import logging
+import shutil
+import yaml
+import sys
+import os
+
+# Main project
+PROJECT_DIR = "/data/projects/TESS"
+SCRIPT_DIR = PROJECT_DIR + "/subtaction_code/scripts/"
+CONFIG_DIR = PROJECT_DIR + "/subtaction_code/aux/"
+DATA_DIR = PROJECT_DIR + "/data/"
+LOG_DIR = PROJECT_DIR + "/log/"
+
+# Get sector dir from args
+payload_dir = os.path.abspath(sys.argv[1])
+contents = os.listdir(payload_dir)
+sector_data_dir = DATA_DIR + payload_dir.split("/")[-1]
+sector_id = int(payload_dir.split("/")[-1][-4:])
+
+# Set logger
+logger = logging.getLogger("ingest-sector")
+logger.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
+log_file = LOG_DIR + f"ingest_sector_{sector_id:04d}.log"
+handler = logging.FileHandler(log_file)
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
+# Read config
+with open(CONFIG_DIR + "tess_pipeline.yaml") as stream:
+    config = yaml.safe_load(stream)
+
+try:
+    # If not already organized reorganize
+    logger.info("moving payload to data directory")
+    if len(contents) != 1:
+        # Directory structure
+        logger.info("restructuring payload")
+        os.mkdir(sector_data_dir)
+        for i in [1, 2, 3, 4]:
+            for j in [1, 2, 3, 4]:
+                cam_ccd_dir = sector_data_dir + f"/cam{i}-ccd{j}"
+                os.mkdir(cam_ccd_dir)
+
+        # Move images
+        image_list = glob(f"{payload_dir}/*.fits")
+        for img in image_list:
+            cam_ccd_dir = sector_data_dir + "/" + os.path.basename(img)[37:46] + "/"
+            shutil.move(img, cam_ccd_dir)
+
+    else:
+        shutil.move(os.path.join(payload_dir, contents[0]), sector_data_dir)
+
+    # Move ref lists to cam-ccd directories
+    logger.info("building ref lists")
+    ref_list_file = PROJECT_DIR + "/ref_lists/" + payload_dir.split("/")[-1]
+    with open(ref_list_file) as f:
+        lines = f.readlines()
+        ref_list = [l.strip() for l in lines]
+
+    # Get ref contribrs for sector by cadence
+    ref_cadence_list = [ref.split("-")[1] for ref in ref_list]
+
+    # Build dates files and run interps
+    interp_procs = list()
+    logger.info("building dates files")
+    for i in [1, 2, 3, 4]:
+        for j in [1, 2, 3, 4]:
+            cam_ccd_dir = sector_data_dir + f"/cam{i}-ccd{j}/"
+
+            # Write dates file
+            cam_ccd_imgs = os.listdir(cam_ccd_dir)
+            with open(cam_ccd_dir + "dates", "w") as f:
+                for line in cam_ccd_imgs:
+                    f.write(line + "\n")
+
+            # Write ref_list
+            ref_contribs = [img for img in cam_ccd_imgs if img.split("-")[2] in ref_cadence_list]
+            with open(cam_ccd_dir + "ref_list", "w") as f:
+                for line in ref_contribs:
+                    f.write(line + "\n")
+
+            # Write process config
+            text = f"MRJ_DIR        /opt/osu_isis/          Installation directory\n" \
+                   f"CONFIG_DIR     {cam_ccd_dir}           Where to find the config files\n" \
+                   f"IM_DIR         {cam_ccd_dir}           Directory with the images\n" \
+                   f"INFILE         {cam_ccd_dir}dates      Dates of the frames\n" \
+                   f"REFERENCE      {cam_ccd_dir}{ref_contribs[0]} \n" \
+                   f"REF_STACK      {cam_ccd_dir}interp_{ref_contribs[0]} \n"\
+                   f"REF_SUB        {cam_ccd_dir}ref.fits   Reference image for subtraction\n" \
+                   f"VARIABLES      {cam_ccd_dir}phot.data  Coordinates of objects\n" \
+                   f"DEGREE         2                       Degree of the polynomial astr transf., for interp.csh\n" \
+                   f"COSMIC_THRESH  5.0                     To reject the cosmic rays, used by interp.csh \n" \
+                   f"SIG_THRESH     1.0                     Threshold of variability, used by find.csh\n" \
+                   f"N_REJECT       1                       Nth frame, used by detect.csh\n" \
+                   f"MESH_SMOOTH    3                       Smoothing mesh size, used by detect.csh\n"
+            with open(cam_ccd_dir + "process_config", "w") as f:
+                f.write(text)
+
+            # Copy default config
+            shutil.copy(CONFIG_DIR + "default_config", cam_ccd_dir)
+
+            # Run quick_smooth
+            proc = subprocess.Popen([SCRIPT_DIR + "quick-smooth", cam_ccd_dir])
+            interp_procs.append(proc)
+
+    # Wait for interps
+    logger.info("running quick-smooth")
+    for proc in interp_procs:
+        proc.wait()
+
+    # Build ref_list and dates files for each cam-ccd dir
+    ref_procs = list()
+    for i in [1, 2, 3, 4]:
+        for j in [1, 2, 3, 4]:
+            cam_ccd_dir = sector_data_dir + f"/cam{i}-ccd{j}/"
+
+            # Run build ref file
+            proc = subprocess.Popen([SCRIPT_DIR + "isis-make-ref", cam_ccd_dir])
+            ref_procs.append(proc)
+
+    # Wait for refs to finish
+    logger.info("building reference images")
+    for proc in ref_procs:
+        proc.wait()
+
+    # Run subtractions
+    sub_procs = list()
+    for i in [1, 2, 3, 4]:
+        for j in [1, 2, 3, 4]:
+            cam_ccd_dir = sector_data_dir + f"/cam{i}-ccd{j}/"
+
+            # Run isis subtractions
+            proc = subprocess.Popen([SCRIPT_DIR + "isis-subtract", cam_ccd_dir])
+            sub_procs.append(proc)
+
+    # Wait for subtractions to finish
+    logger.info("subtracting images")
+    for proc in sub_procs:
+        proc.wait()
+
+    # Correct straps from tess image
+    strap_procs = list()
+    for i in [1, 2, 3, 4]:
+        for j in [1, 2, 3, 4]:
+            cam_ccd_dir = sector_data_dir + f"/cam{i}-ccd{j}/"
+
+            # Run isis subtractions
+            proc = subprocess.Popen([SCRIPT_DIR + "correct-straps", cam_ccd_dir])
+            strap_procs.append(proc)
+
+    # Wait for corrections to finish
+    logger.info("correcting straps")
+    for proc in strap_procs:
+        proc.wait()
+
+    # Remove background from tess image
+    bkg_procs = list()
+    for i in [1, 2, 3, 4]:
+        for j in [1, 2, 3, 4]:
+            cam_ccd_dir = sector_data_dir + f"/cam{i}-ccd{j}/"
+
+            # Run isis subtractions
+            proc = subprocess.Popen([SCRIPT_DIR + "bkg-median-filter", cam_ccd_dir])
+            strap_procs.append(proc)
+
+    # Wait for corrections to finish
+    logger.info("running background median filtering")
+    for proc in bkg_procs:
+        proc.wait()
+
+    # Delete auxiliary files
+    logger.info("removing auxiliary files ")
+    for i in [1, 2, 3, 4]:
+        for j in [1, 2, 3, 4]:
+            cam_ccd_dir = sector_data_dir + f"/cam{i}-ccd{j}/"
+            extra_files = glob(cam_ccd_dir + "k*.fits")
+            for file in extra_files:
+                os.remove(file)
+
+    # Connect to database
+    logger.info("connecting to database")
+    url_object = sqlalchemy.URL.create(
+            "postgresql+psycopg2",
+            username=config['db_user'],
+            password=config['db_pass'],
+            database=config['db_name'],
+            host=config['db_host'])
+    engine = sqlalchemy.create_engine(url_object)
+
+    # Update field info to database
+    logger.info("logging images to database")
+    mjd_beg = 99999
+    mjd_end = 0
+    for i in [1, 2, 3, 4]:
+        for j in [1, 2, 3, 4]:
+            cam_ccd_dir = sector_data_dir + f"/cam{i}-ccd{j}/"
+            cam_ccd_imgs = [os.path.basename(fits) for fits in  glob(cam_ccd_dir + "hlsp_*.fits")]
+
+            # Read single img for field data
+            with fits.open(cam_ccd_imgs[int(len(cam_ccd_imgs) / 2)]) as hdul:
+                img = hdul[0]
+                wcs = WCS(img.header)
+                bounds = img.data.shape
+
+                # MJD Bounds for sector
+                mjd_beg = min(mjd_beg, img.header["MJD-BEG"])
+                mjd_end = max(mjd_end, img.header["MJD-END"])
+
+                # RA - DEC Verticies for Cam/CCD Field
+                v1 = wcs.pixel_to_world(0,0)
+                v2 = wcs.pixel_to_world(bounds[0],0)
+                v3 = wcs.pixel_to_world(bounds[0],bounds[1])
+                v4 = wcs.pixel_to_world(0,bounds[1])
+
+                ra_vs = [v1.ra.value, v2.ra.value, v3.ra.value, v4.ra.value]
+                dec_vs = [v1.dec.value, v2.dec.value, v3.dec.value, v4.dec.value]
+
+            # First transaction for field
+            with engine.begin() as conn:
+                statement = f"INSERT INTO fields " \
+                            f"(sector_id, camera_id, ccd_id, bounds) " \
+                            f"VALUES " \
+                            f"({sector_id}, {i}, {j}, ARRAY[{ra_vs},{dec_vs}]"
+                conn.execute(sqlalchemy.text(statement))
+                # Field ID needed for image table
+                statement = f"SELECT field_id FROM fields " \
+                            f"WHERE sector_id = {sector_id} AND camera_id = {i} AND ccd_id = {j}"
+                field_id = conn.execute(sqlalchemy.text(statement)).first()[0]
+
+            # Second transaction for images
+            with engine.begin() as conn:
+                for img_file in cam_ccd_imgs:
+                    with fits.open(cam_ccd_dir + img) as hdul:
+                        hdr = hdul[0].header
+                        cadence = hdr['CADENCE']
+                        mjd_beg = hdr["MJD-BEG"]
+                        mjd_end = hdr["MJD-END"]
+                        mjd_mid = (mjd_beg + mjd_end) / 2
+                    # Submit
+                    statement = f"INSERT INTO images " \
+                                f"(cadence, field_id, filename, mjd_beg, mjd_mid, mjd_end) " \
+                                f"VALUES " \
+                                f"({cadence}, {field_id}, '{img_file}', {mjd_beg}, {mjd_mid}, {mjd_end})"
+                    conn.execute(sqlalchemy.text(statement))
+
+    # Log sector in postgres
+    logger.info("finishing database logging")
+    with engine.begin() as conn:
+        statatement = f"INSERT INTO sectors " \
+                      f"(sector_id, mjd_start, mjd_finish) " \
+                      f"VALUES " \
+                      f"({sector_id}, {mjd_beg}, {mjd_end})"
+        conn.execute(sqlalchemy.text(statement))
+
+except Exception as e:
+    logger.info(traceback.format_exception(e))
