@@ -16,7 +16,7 @@ os.chdir(cam_ccd_dir)
 img_list = np.genfromtxt('dates',usecols=(0),dtype=str)
 
 # Use image in center of series as a reference for alignment
-sample_ref = img_list[int(len(img_lsit) / 2)]
+sample_ref = img_list[int(len(img_list) / 2)]
 ref_wcs = reproject.wcs_utils.WCS(fits.open(sample_ref)[0].header)
 
 # Interpolate and smooth all images
