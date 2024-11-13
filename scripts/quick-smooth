@@ -22,18 +22,21 @@ ref_wcs = reproject.wcs_utils.WCS(fits.open(sample_ref)[0].header)
 # Interpolate and smooth all images
 for img in img_list:
     # Read in image
-    hdu0 = fits.open(img)[0]
-    reprojected_image, _ = reproject.reproject_interp(hdu0, ref_wcs)
+    hdu0 = fits.open(img)
+    reprojected_image, _ = reproject.reproject_interp(hdu0[0], ref_wcs)
 
     # Smooth image
     data = gaussian_filter(reprojected_image,0.9,mode='constant')
 
     # Save out to interp_ file
-    hdu1 = fits.PrimaryHDU(data=data, header=hdu0.header)
+    hdu1 = fits.PrimaryHDU(data=data, header=hdu0[0].header)
     
     # Update WCS information for reprojection
     hdu1.header.update(ref_wcs.to_header())
     
+    # Get fits table from original
+    hdu0 = hdu0[1]
+
     # Smooth interp as first hdu (save raw as second)
     hdu_list = fits.HDUList([hdu1,hdu0])
     hdu_list.writeto('interp_'+ img, checksum=True)
