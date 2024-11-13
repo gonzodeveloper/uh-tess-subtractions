@@ -1,34 +1,41 @@
 #!/usr/local/share/conda_envs/tesspatrol_conda/bin/python
 
+
 from scipy.ndimage import gaussian_filter
 from astropy.io import fits
 import numpy as np
+import reproject
 import sys
 import os
 
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
 
+# Change to cam-ccd image dir
 cam_ccd_dir = sys.argv[1]
 os.chdir(cam_ccd_dir)
-imlist = np.genfromtxt('dates',usecols=(0),dtype=str) 
+img_list = np.genfromtxt('dates',usecols=(0),dtype=str)
 
-for im in imlist:
-    if os.path.isfile('interp_'+im):
-        continue
-    #    data = fits.open(im)[0].data
-    try:
-        fin = fits.open(im)
-    except:
-        continue
-    data = fin[0].data
-#    sdata = gaussian_filter(data,0.45,mode='constant')
-    sdata = gaussian_filter(data,0.9,mode='constant')
-#    sdata = gaussian_filter(data,1.8,mode='constant')
+# Use image in center of series as a reference for alignment
+sample_ref = img_list[int(len(img_lsit) / 2)]
+ref_wcs = reproject.wcs_utils.WCS(fits.open(sample_ref)[0].header)
 
-#    fits.writeto('interp_'+im,sdata,overwrite=True)
+# Interpolate and smooth all images
+for img in img_list:
+    # Read in image
+    hdu0 = fits.open(img)[0]
+    reprojected_image, _ = reproject.reproject_interp(hdu0, ref_wcs)
 
-    hdu0 = fits.PrimaryHDU(data=sdata, header=fin[0].header)
-    hdu1 = fin[1]
+    # Smooth image
+    data = gaussian_filter(reprojected_image,0.9,mode='constant')
+
+    # Save out to interp_ file
+    hdu1 = fits.PrimaryHDU(data=data, header=hdu0.header)
     
-    hdu_list = fits.HDUList([hdu0,hdu1])
-    hdu_list.writeto('interp_'+im, checksum=True)
+    # Update WCS information for reprojection
+    hdu1.header.update(ref_wcs.to_header())
+    
+    # Smooth interp as first hdu (save raw as second)
+    hdu_list = fits.HDUList([hdu1,hdu0])
+    hdu_list.writeto('interp_'+ img, checksum=True)
+
+
