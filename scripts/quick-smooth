@@ -3,12 +3,18 @@
 
 from scipy.ndimage import gaussian_filter
 from astropy.io import fits
+from astropy.wcs import FITSFixedWarning
 import numpy as np
 import reproject
+import warnings
 import sys
 import os
 
+# ENV Settings
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
+
+# Warning on MJD -> DATE write
+warnings.simplefilter("ignore", category=FITSFixedWarning)
 
 # Change to cam-ccd image dir
 cam_ccd_dir = sys.argv[1]
@@ -32,7 +38,7 @@ for img in img_list:
     hdu1 = fits.PrimaryHDU(data=data, header=hdu0[0].header)
     
     # Update WCS information for reprojection
-    hdu1.header.update(ref_wcs.to_header())
+    hdu1.header.update(ref_wcs.to_header(relax=True))
     
     # Get fits table from original
     hdu0 = hdu0[1]
