@@ -83,8 +83,8 @@ ra, dec = hdu.header['CRVAL1'], hdu.header['CRVAL2']
 if args.ref_cal_file is None:
     # Reach rectangle around the center
     logger.info("running refcat script for targets")
-    cmd = f"/usr/local/bin/refcat {ra} {dec} " \
-          f"-dir /fast_data/refcat/16_m_17/,/fast_data/refcat/17_m_18/,/fast_data/refcat/18_m_19/ " \
+    cmd = f"/data/projects/refcat/refcat {ra} {dec} " \
+          f"-dir /data/projects/refcat/16_m_17/,/data/projects/refcat/17_m_18/,/data/projects/refcat/18_m_19/ " \
           f"-rect 6.0,6.0 -hdr -all"
     result = subprocess.run(cmd, stdout=subprocess.PIPE, shell=True)
     output = result.stdout.decode('utf-8')
