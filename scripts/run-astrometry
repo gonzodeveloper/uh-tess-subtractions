@@ -32,8 +32,6 @@ command_base = f"{ASTROMETRY_NET}    " \
                f"--use-source-extractor          " \
                f"--overwrite                     " \
                f"--dir {TMP_DIR}                 "\
-               #f"--scale-low {LOW}               " \
-               #f"--scale-high {HIGH}             " \
                f"--radius {RADIUS}               " \
                f"--scale-units degwidth       " \
                f"--ra {args.ra} --dec {args.dec}   "
