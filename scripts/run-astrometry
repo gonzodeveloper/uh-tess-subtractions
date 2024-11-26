@@ -35,7 +35,7 @@ command_base = f"{ASTROMETRY_NET}    " \
                f"--scale-low {LOW}               " \
                f"--scale-high {HIGH}             " \
                f"--radius {RADIUS}               " \
-               f"--scale-units arcminwidth       " \
+               f"--scale-units degwidth       " \
                f"--ra {args.ra} --dec {args.dec}   "
 
 
