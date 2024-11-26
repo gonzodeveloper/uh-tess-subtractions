@@ -42,7 +42,8 @@ command_base = f"{ASTROMETRY_NET}    " \
 # Reduce str
 cmd_str = re.sub(' +', ' ', command_base + args.fits_file)
 # Run command
-output = subprocess.run(cmd_str, stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8')
+result = subprocess.run(cmd_str, stdout=subprocess.PIPE, shell=True)
+output = result.stdout.decode('utf-8')
 
 # Parse output for ra and dec
 field_ctr_line = re.findall(r"^Field center: \(RA,Dec\).*", output, flags=re.MULTILINE)[0]
