@@ -1,0 +1,58 @@
+#!/usr/local/share/conda_envs/tesspatrol_conda/bin/python
+
+import argparse
+import subprocess
+import shutil
+import re
+import os
+
+# Parse arguments
+parser = argparse.ArgumentParser("run-astrometry", description="Wrapper for astropy.net astrometry script")
+parser.add_argument("ra", type=float, help="ra for center of field")
+parser.add_argument("dec", type=float, help="dec for center of field")
+parser.add_argument("fits_file", type=str, help="fits file to solve photometry for")
+args = parser.parse_args()
+
+# Astrometry.net path and parameters
+ASTROMETRY_NET = "/usr/local/astrometry/bin/solve-field"
+TMP_DIR = "/tmp/"
+RADIUS = 6
+LOW = 5
+HIGH = 8
+
+# Run command
+command_base = f"{ASTROMETRY_NET}    " \
+               f"--no-plots                      " \
+               f"--index-xyls none               " \
+               f"--axy none                      " \
+               f"--solved none                   " \
+               f"--corr none                     " \
+               f"--match none                    " \
+               f"--rdls none                     " \
+               f"--use-source-extractor          " \
+               f"--overwrite                     " \
+               f"--dir {TMP_DIR}                 "\
+               f"--scale-low {LOW}               " \
+               f"--scale-high {HIGH}             " \
+               f"--radius {RADIUS}               " \
+               f"--scale-units arcminwidth       " \
+               f"--ra {args.ra} --dec {args.dec}   "
+
+
+# Reduce str
+cmd_str = re.sub(' +', ' ', command_base + args.fits_file)
+# Run command
+output = subprocess.run(cmd_str, stdout=subprocess.PIPE, shell=True).deccode('utf-8')
+
+# Parse output for ra and dec
+field_ctr_line = re.findall(r"^Field center: \(RA,Dec\).*", output, flags=re.MULTILINE)[0]
+ra, dec = [float(x) for x in re.findall(r"[+-]? *(?:\d+(?:\.\d*)?|\.\d+)", field_ctr_line)]
+
+
+# Remove original file, replace with new info, delete wcs info
+base = '.'.join(os.path.basename(args.fits_file).split(".")[:-1])
+new_file = os.path.join(TMP_DIR, base + ".new")
+wcs_file = os.path.join(TMP_DIR, base + ".wcs")
+os.remove(wcs_file)
+os.remove("none")
+shutil.copy(new_file, args.fits_file)
