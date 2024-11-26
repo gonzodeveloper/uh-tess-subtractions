@@ -32,8 +32,8 @@ command_base = f"{ASTROMETRY_NET}    " \
                f"--use-source-extractor          " \
                f"--overwrite                     " \
                f"--dir {TMP_DIR}                 "\
-               f"--scale-low {LOW}               " \
-               f"--scale-high {HIGH}             " \
+               #f"--scale-low {LOW}               " \
+               #f"--scale-high {HIGH}             " \
                f"--radius {RADIUS}               " \
                f"--scale-units degwidth       " \
                f"--ra {args.ra} --dec {args.dec}   "
@@ -44,6 +44,7 @@ cmd_str = re.sub(' +', ' ', command_base + args.fits_file)
 # Run command
 result = subprocess.run(cmd_str, stdout=subprocess.PIPE, shell=True)
 output = result.stdout.decode('utf-8')
+print(output)
 
 # Parse output for ra and dec
 field_ctr_line = re.findall(r"^Field center: \(RA,Dec\).*", output, flags=re.MULTILINE)[0]
