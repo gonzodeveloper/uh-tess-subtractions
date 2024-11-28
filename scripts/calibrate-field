@@ -59,6 +59,7 @@ parser.add_argument("-i", "--skyin", type=float, default=8.0, help="inner radius
 parser.add_argument("-o", "--skyout", type=float, default=10.0, help="out radius for background annulus")
 parser.add_argument("-d", "--dsig", type=float, default=5.0, help="sigma cut for non-detections")
 parser.add_argument("-O", "--order", type=int, default=3, help="order polynomial for correction")
+parser.add_argument("--exptime", type=float, help="if set use this exposure time, if not, read header")
 parser.add_argument("img_file", type=str, help="image to run calibrations for")
 args = parser.parse_args()
 
@@ -76,6 +77,8 @@ logger.info(f"reading img file {args.img_file}")
 
 img_file = args.img_file
 hdu = fits.open(img_file)[0]
+hdr = hdu.header
+data = hdu.data
 
 # Get ra/dec
 ra, dec = hdu.header['CRVAL1'], hdu.header['CRVAL2']
@@ -117,8 +120,8 @@ ref_df['y'] = [float(i) for i in y]
 
 # First cut refcat df on pixel border
 border = 128
-naxis1 = hdu.header['NAXIS1']
-naxis2 = hdu.header['NAXIS2']
+naxis1 = hdr['NAXIS1']
+naxis2 = hdr['NAXIS2']
 ref_df = ref_df[(border < ref_df.x) & (ref_df.x < naxis1 - border)
             & (border < ref_df.y) & (ref_df.y < naxis2 - border)]
 # Cut on rp
@@ -132,12 +135,15 @@ ref_df = ref_df[(ref_df['ref_mag'] < 18) & (ref_df['ref_mag'] > 12)]
 
 logger.info(f"using {len(ref_df):,} refcat targets after cuts")
 
+# Exptime for phot
+exptime = args.exptime if args.exptime is not None else hdr['EXPTIME']
+
 # Run photometry on ref targets in image
-phot_df = apphot(ref_df, hdu.data,
+phot_df = apphot(ref_df, data,
                  app=args.aperture,
                  skyin=args.skyin,
                  skyout=args.skyout,
-                 exptime=hdu.header['EXPTIME'])
+                 exptime=exptime)
 
 # Throw out non_detections
 non_detections = (args.dsig * phot_df['e_mag'] > phot_df['mag']) | (phot_df['e_mag'] < 0)
@@ -146,12 +152,12 @@ phot_df = phot_df.loc[~non_detections]
 logger.info(f"using photometry from {len(phot_df):,} targets")
 
 # Get center distances and mag diffs
-crpix1, crpix2 = hdu.header['CRPIX1'], hdu.header['CRPIX2']
+crpix1, crpix2 = hdr['CRPIX1'], hdr['CRPIX2']
 phot_df['center_dist'] = phot_df.apply(lambda row: distance.euclidean((crpix1, crpix2), (row.x, row.y)), axis=1)
 
 # Fractional positions
-phot_df["xpos"] = phot_df['x'] / hdu.header['NAXIS1']
-phot_df['ypos'] = phot_df['y'] / hdu.header['NAXIS2']
+phot_df["xpos"] = phot_df['x'] / hdr['NAXIS1']
+phot_df['ypos'] = phot_df['y'] / hdr['NAXIS2']
 
 # Iteratively remove outliers
 n = 0
