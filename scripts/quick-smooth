@@ -7,18 +7,24 @@ from astropy.wcs import FITSFixedWarning
 import numpy as np
 import reproject
 import warnings
+import argparse
 import sys
 import os
 
 # ENV Settings
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
 
+# Parse arguments
+parser = argparse.ArgumentParser("quick-smooth")
+parser.add_argument("-w", "--wcs_align", action="store-true", help="if set, then we will align the interps via wcs")
+parser.add_argument("cam_ccd_dir", type=str, help="directory containing the raw images for the cam/ccd field")
+args = parser.parse_args()
+
 # Warning on MJD -> DATE write
 warnings.simplefilter("ignore", category=FITSFixedWarning)
 
 # Change to cam-ccd image dir
-cam_ccd_dir = sys.argv[1]
-os.chdir(cam_ccd_dir)
+os.chdir(args.cam_ccd_dir)
 img_list = np.genfromtxt('dates',usecols=(0),dtype=str)
 
 # Use image in center of series as a reference for alignment
@@ -29,20 +35,24 @@ ref_wcs = reproject.wcs_utils.WCS(fits.open(sample_ref)[0].header)
 for img in img_list:
     # Read in image
     hdu0 = fits.open(img)
-    reprojected_image, _ = reproject.reproject_interp(hdu0[0], ref_wcs)
 
-    # Smooth image
-    data = gaussian_filter(reprojected_image,0.9,mode='constant')
+    if args.align_wcs:
+        reprojected_image, _ = reproject.reproject_interp(hdu0[0], ref_wcs)
+        # Smooth image
+        data = gaussian_filter(reprojected_image,0.9,mode='constant')
+        # Save out to interp_ file
+        hdu1 = fits.PrimaryHDU(data=data, header=hdu0[0].header)
+        # Update WCS information for reprojection
+        hdu1.header.update(ref_wcs.to_header(relax=True))
 
-    # Save out to interp_ file
-    hdu1 = fits.PrimaryHDU(data=data, header=hdu0[0].header)
-    
-    # Update WCS information for reprojection
-    hdu1.header.update(ref_wcs.to_header(relax=True))
-    
+    else:
+        # Smooth image
+        data = gaussian_filter(hdu0[0].data, 0.9, mode='constant')
+        # Save out to interp_ file
+        hdu1 = fits.PrimaryHDU(data=data, header=hdu0[0].header)
+
     # Get fits table from original
     hdu0 = hdu0[1]
-
     # Smooth interp as first hdu (save raw as second)
     hdu_list = fits.HDUList([hdu1,hdu0])
     hdu_list.writeto('interp_'+ img, checksum=True)
