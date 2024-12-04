@@ -1,6 +1,5 @@
 #!/usr/local/share/conda_envs/tesspatrol_conda/bin/python
 
-
 from scipy.ndimage import gaussian_filter
 from astropy.io import fits
 from astropy.wcs import FITSFixedWarning
@@ -16,7 +15,7 @@ os.environ['OPENBLAS_NUM_THREADS'] = '1'
 
 # Parse arguments
 parser = argparse.ArgumentParser("quick-smooth")
-parser.add_argument("-w", "--wcs_align", action="store-true", help="if set, then we will align the interps via wcs")
+parser.add_argument("-w", "--wcs_align", action="store_true", help="if set, then we will align the interps via wcs")
 parser.add_argument("cam_ccd_dir", type=str, help="directory containing the raw images for the cam/ccd field")
 args = parser.parse_args()
 
