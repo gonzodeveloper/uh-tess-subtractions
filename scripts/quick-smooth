@@ -35,7 +35,7 @@ for img in img_list:
     # Read in image
     hdu0 = fits.open(img)
 
-    if args.align_wcs:
+    if args.wcs_align:
         reprojected_image, _ = reproject.reproject_interp(hdu0[0], ref_wcs)
         # Smooth image
         data = gaussian_filter(reprojected_image,0.9,mode='constant')
