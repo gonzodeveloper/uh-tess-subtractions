@@ -76,8 +76,8 @@ logger.addHandler(handler)
 cam_ccd_dir_path = os.path.abspath(args.cam_ccd_dir)
 os.chdir(cam_ccd_dir_path)
 # Reading img
-logger.info(f"opening ref file at {os.path.join(cam_ccd_dir_path, "ref.fits")}")
-hdu = fits.open(ref.fits)[0]
+logger.info(f"opening ref file at {os.path.join(cam_ccd_dir_path, 'ref.fits')}")
+hdu = fits.open("ref.fits")[0]
 hdr = hdu.header
 data = hdu.data
 
