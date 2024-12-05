@@ -1,5 +1,5 @@
 #!/usr/local/share/conda_envs/tesspatrol_conda/bin/python
-
+import os.path
 
 from photutils.aperture import CircularAperture, CircularAnnulus, ApertureStats
 from astropy.coordinates import SkyCoord
@@ -60,7 +60,7 @@ parser.add_argument("-o", "--skyout", type=float, default=10.0, help="out radius
 parser.add_argument("-d", "--dsig", type=float, default=5.0, help="sigma cut for non-detections")
 parser.add_argument("-O", "--order", type=int, default=3, help="order polynomial for correction")
 parser.add_argument("--exptime", type=float, help="if set use this exposure time, if not, read header")
-parser.add_argument("img_file", type=str, help="image to run calibrations for")
+parser.add_argument("cam_ccd_dir", type=str, help="cam/ccd field directory containing ref filer")
 args = parser.parse_args()
 
 
@@ -72,11 +72,12 @@ handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-# Read in fits file
-logger.info(f"reading img file {args.img_file}")
-
-img_file = args.img_file
-hdu = fits.open(img_file)[0]
+# Enter working dir
+cam_ccd_dir_path = os.path.abspath(args.cam_ccd_dir)
+os.chdir(cam_ccd_dir_path)
+# Reading img
+logger.info(f"opening ref file at {os.path.join(cam_ccd_dir_path, "ref.fits")}")
+hdu = fits.open(ref.fits)[0]
 hdr = hdu.header
 data = hdu.data
 
@@ -110,7 +111,7 @@ coords = ref_df.apply(lambda tar: SkyCoord(tar['RA'] * u.deg, tar['Dec'] * u.deg
 # Get WCS for x/y positions
 with warnings.catch_warnings():
       warnings.simplefilter("ignore")
-      wcs = WCS(hdu.header)
+      wcs = WCS(fits.open("ref.wcs")[0].header)
 
 x, y = list(zip(*[wcs.world_to_pixel(c) for c in coords]))
 
