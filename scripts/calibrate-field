@@ -22,7 +22,6 @@ pd.set_option('mode.chained_assignment', None)
 
 def apphot(df, data, app, skyin, skyout, exptime, correction=0):
     # Photutils tools
-    print(df['x'])
     xy = list(zip(df['x'].to_list(), df['y'].to_list()))
     src_app = CircularAperture(xy, app)
     bkg_ann = CircularAnnulus(xy, skyin, skyout)
@@ -135,7 +134,9 @@ ref_df['ref_mag'] = ref_df[['r', 'i', 'z']].mean(axis=1)
 # Cut on mags
 ref_df = ref_df[(ref_df['ref_mag'] < 18) & (ref_df['ref_mag'] > 12)]
 
+# Log and save
 logger.info(f"using {len(ref_df):,} refcat targets after cuts")
+ref_df.to_csv("calibs.csv", index=False)
 
 # Exptime for phot
 exptime = args.exptime if args.exptime is not None else hdr['EXPTIME']
