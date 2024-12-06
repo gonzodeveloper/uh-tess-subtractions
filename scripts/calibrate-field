@@ -197,12 +197,11 @@ while (n != len(phot_df)) and (len(phot_df) != 0):
 logger.info(f"used {len(phot_df):,} for recalibration")
 
 # Save dataframe
-print(phot_df)
 phot_df.to_csv("ref_phot.csv", index=False, sep=",")
 
 with fits.open("ref.fits", mode='update') as hdul:
     hdr = hdul[0].header
-    hdr.update(wcs_hdr)
+    # hdr.update(wcs_hdr)
     ij = itertools.product(range(args.order + 1), range(args.order + 1))
     for a, (i, j) in zip(m, ij):
         hdr.append((f"hierarch A{args.aperture}O{args.order}i{args.skyin}o{args.skyout}X{i}Y{j}", a,
