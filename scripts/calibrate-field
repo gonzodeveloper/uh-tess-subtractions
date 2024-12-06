@@ -108,7 +108,7 @@ logger.info(f"using {len(ref_df):,} refcat targets")
 # Map to coords
 ref_df['coords'] = ref_df.apply(lambda tar: SkyCoord(tar['RA'] * u.deg, tar['Dec'] * u.deg), axis=1).to_list()
 
-print(ref_df[['RA', 'Dec', 'Coords']])
+print(ref_df[['RA', 'Dec', 'coords']])
 
 # Get WCS for x/y positions
 with warnings.catch_warnings():
