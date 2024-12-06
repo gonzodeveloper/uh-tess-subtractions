@@ -1,6 +1,4 @@
 #!/usr/local/share/conda_envs/tesspatrol_conda/bin/python
-import os.path
-
 from photutils.aperture import CircularAperture, CircularAnnulus, ApertureStats
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
@@ -16,8 +14,10 @@ import itertools
 import argparse
 import warnings
 import sys
+import os
 
 pd.set_option('mode.chained_assignment', None)
+pd.set_option('display.width', 0)
 
 
 def apphot(df, data, app, skyin, skyout, exptime, correction=0):
@@ -106,9 +106,7 @@ else:
 logger.info(f"using {len(ref_df):,} refcat targets")
 
 # Map to coords
-ref_df['coords'] = ref_df.apply(lambda tar: SkyCoord(tar['RA'] * u.deg, tar['Dec'] * u.deg, frame='fk5'), axis=1).to_list()
-
-print(ref_df[['RA', 'Dec', 'coords']])
+ref_df['coords'] = ref_df.apply(lambda tar: SkyCoord(tar['RA'] * u.deg, tar['Dec'] * u.deg, frame='fk5'), axis=1)
 
 # Get WCS for x/y positions
 with warnings.catch_warnings():
