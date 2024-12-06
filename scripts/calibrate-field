@@ -80,9 +80,10 @@ logger.info(f"opening ref file at {os.path.join(cam_ccd_dir_path, 'ref.fits')}")
 hdu = fits.open("ref.fits")[0]
 hdr = hdu.header
 data = hdu.data
+wcs_hdr = fits.open("ref.wcs")[0].header
 
 # Get ra/dec
-ra, dec = hdu.header['CRVAL1'], hdu.header['CRVAL2']
+ra, dec = wcs_hdr['CRVAL1'], wcs_hdr['CRVAL2']
 
 if args.ref_cal_file is None:
     # Reach rectangle around the center
@@ -111,7 +112,7 @@ coords = ref_df.apply(lambda tar: SkyCoord(tar['RA'] * u.deg, tar['Dec'] * u.deg
 # Get WCS for x/y positions
 with warnings.catch_warnings():
       warnings.simplefilter("ignore")
-      wcs = WCS(fits.open("ref.wcs")[0].header, relax=True)
+      wcs = WCS(wcs_hdr, relax=True)
 
 x, y = list(zip(*[wcs.world_to_pixel(c) for c in coords]))
 
