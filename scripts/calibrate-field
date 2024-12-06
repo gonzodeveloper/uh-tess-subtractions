@@ -118,6 +118,7 @@ x, y = list(zip(*[wcs.world_to_pixel(c) for c in ref_df['coords'].to_list()]))
 # Add to dataframe
 ref_df['x'] = [float(i) for i in x]
 ref_df['y'] = [float(i) for i in y]
+print(ref_df)
 
 # First cut refcat df on pixel border
 border = 128
