@@ -77,9 +77,9 @@ cam_ccd_dir_path = os.path.abspath(args.cam_ccd_dir)
 os.chdir(cam_ccd_dir_path)
 # Reading img
 logger.info(f"opening ref file at {os.path.join(cam_ccd_dir_path, 'ref.fits')}")
-hdu = fits.open("ref.fits")[0]
-hdr = hdu.header
-data = hdu.data
+with fits.open("ref.fits") as hdul:
+    hdr = hdul[0].header
+    data = hdul[0].data
 wcs_hdr = fits.open("ref.wcs")[0].header
 
 # Get ra/dec
@@ -200,9 +200,9 @@ logger.info(f"used {len(phot_df):,} for recalibration")
 print(phot_df)
 phot_df.to_csv("ref_phot.csv", index=False, sep=",")
 
-with fits.open(args.img_file, mode='update') as hdul:
+with fits.open("ref.fits", mode='update') as hdul:
     hdr = hdul[0].header
-
+    hdr.update(wcs_hdr)
     ij = itertools.product(range(args.order + 1), range(args.order + 1))
     for a, (i, j) in zip(m, ij):
         hdr.append((f"hierarch A{args.aperture}O{args.order}i{args.skyin}o{args.skyout}X{i}Y{j}", a,
