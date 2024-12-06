@@ -199,7 +199,7 @@ logger.info(f"used {len(phot_df):,} for recalibration")
 # Save dataframe
 phot_df.to_csv("ref_phot.csv", index=False, sep=",")
 
-with fits.open("ref.fits", mode='update') as hdul:
+with fits.open("ref.wcs", mode='update') as hdul:
     hdr = hdul[0].header
     # hdr.update(wcs_hdr)
     ij = itertools.product(range(args.order + 1), range(args.order + 1))
