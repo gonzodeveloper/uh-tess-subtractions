@@ -157,7 +157,7 @@ phot_df = phot_df.loc[~non_detections]
 logger.info(f"using photometry from {len(phot_df):,} targets")
 
 # Get center distances and mag diffs
-crpix1, crpix2 = hdr['CRPIX1'], hdr['CRPIX2']
+crpix1, crpix2 = wcs_hdr['CRPIX1'], wcs_hdr['CRPIX2']
 phot_df['center_dist'] = phot_df.apply(lambda row: distance.euclidean((crpix1, crpix2), (row.x, row.y)), axis=1)
 
 # Fractional positions
