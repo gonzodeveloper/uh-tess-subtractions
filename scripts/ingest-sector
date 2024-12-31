@@ -137,6 +137,58 @@ try:
     for proc in ref_procs:
         proc.wait()
 
+    # solve astrometry on reference iamges
+    ast_procs = list()
+    for i in [1, 2, 3, 4]:
+        for j in [1, 2, 3, 4]:
+            cam_ccd_dir = sector_data_dir + f"/cam{i}-ccd{j}/"
+            # Get center RA and DEC vals from img
+            with fits.open(cam_ccd_imgs[int(len(cam_ccd_imgs) / 2)]) as hdul:
+                hdr = hdul[0].header
+                ra = hdr['CRVAL1']
+                dec = hdr['CRVAL2']
+
+            # Build astro command
+            astrometry_cmd = f"/usr/local/astrometry/bin/solve-field " \
+                             f"--no-plots                            " \
+                             f"--index-xyls none                     " \
+                             f"--axy none                            " \
+                             f"--solved none                         " \
+                             f"--corr none                           " \
+                             f"--match none                          " \
+                             f"--rdls none                           " \
+                             f"--scale-low 20                        " \
+                             f"--scale-high 26                       " \
+                             f"--scale-units degwidth                " \
+                             f"--ra  {ra} --dec {dec}                " \
+                             f"--dir {cam_ccd_dir}"
+            # Run build ref file
+            proc = subprocess.Popen([astrometry_cmd, cam_ccd_dir + "ref.fits"])
+            ast_procs.append(proc)
+
+    # Wait for refs to finish
+    logger.info("solving astrometry")
+    for proc in ast_procs:
+        proc.wait()
+
+    # Run calibrations
+    cal_procs = list()
+    for i in [1, 2, 3, 4]:
+        for j in [1, 2, 3, 4]:
+            cam_ccd_dir = sector_data_dir + f"/cam{i}-ccd{j}/"
+            with fits.open(cam_ccd_imgs[int(len(cam_ccd_imgs) / 2)]) as hdul:
+                hdr = hdul[0].header
+                exptime = hdr["EXPTIME"]
+
+            # Run isis subtractions
+            proc = subprocess.Popen([SCRIPT_DIR + "calibrate-field", "--exptime", exptime, cam_ccd_dir])
+            cal_procs.append(proc)
+
+    # Wait for subtractions to finish
+    logger.info("running calibrations")
+    for proc in cal_procs:
+        proc.wait()
+
     # Run subtractions
     sub_procs = list()
     for i in [1, 2, 3, 4]:
@@ -208,10 +260,10 @@ try:
     for i in [1, 2, 3, 4]:
         for j in [1, 2, 3, 4]:
             cam_ccd_dir = sector_data_dir + f"/cam{i}-ccd{j}/"
-            cam_ccd_imgs = [os.path.basename(fits) for fits in  glob(cam_ccd_dir + "hlsp_*.fits")]
+            cam_ccd_imgs = [os.path.basename(fits) for fits in glob(cam_ccd_dir + "hlsp_*.fits")]
 
             # Read single img for field data
-            with fits.open(cam_ccd_imgs[int(len(cam_ccd_imgs) / 2)]) as hdul:
+            with fits.open(cam_ccd_dir + "ref.wcs") as hdul:
                 img = hdul[0]
                 wcs_str = WCS(img.header).to_header_string(relax=True)
                 # Escape single quotes for entry into DB
