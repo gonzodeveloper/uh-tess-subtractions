@@ -142,6 +142,8 @@ try:
     for i in [1, 2, 3, 4]:
         for j in [1, 2, 3, 4]:
             cam_ccd_dir = sector_data_dir + f"/cam{i}-ccd{j}/"
+            cam_ccd_imgs = [os.path.basename(fits) for fits in glob(cam_ccd_dir + "hlsp_*.fits")]
+
             # Get center RA and DEC vals from img
             with fits.open(cam_ccd_imgs[int(len(cam_ccd_imgs) / 2)]) as hdul:
                 hdr = hdul[0].header
@@ -176,6 +178,8 @@ try:
     for i in [1, 2, 3, 4]:
         for j in [1, 2, 3, 4]:
             cam_ccd_dir = sector_data_dir + f"/cam{i}-ccd{j}/"
+            cam_ccd_imgs = [os.path.basename(fits) for fits in glob(cam_ccd_dir + "hlsp_*.fits")]
+
             with fits.open(cam_ccd_imgs[int(len(cam_ccd_imgs) / 2)]) as hdul:
                 hdr = hdul[0].header
                 exptime = hdr["EXPTIME"]
