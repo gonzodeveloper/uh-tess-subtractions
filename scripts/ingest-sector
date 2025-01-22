@@ -46,7 +46,7 @@ with open(CONFIG_DIR + "tess_pipeline.yaml") as stream:
 try:
     # If not already organized reorganize
     logger.info("moving payload to data directory")
-    if len(contents) != 1:
+    if len(contents) > 16:
         # Directory structure
         logger.info("restructuring payload")
         os.mkdir(sector_data_dir)
