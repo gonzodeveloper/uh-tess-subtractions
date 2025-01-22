@@ -61,6 +61,10 @@ try:
             cam_ccd_dir = sector_data_dir + "/" + os.path.basename(img)[37:46] + "/"
             shutil.move(img, cam_ccd_dir)
 
+    elif len(contents) == 16:
+        os.mkdir(sector_data_dir)
+        shutil.move(os.path.join(payload_dir, "*"), sector_data_dir)
+
     else:
         shutil.move(os.path.join(payload_dir, contents[0]), sector_data_dir)
 
