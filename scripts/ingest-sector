@@ -64,7 +64,7 @@ try:
     elif len(contents) == 16:
         os.mkdir(sector_data_dir)
         for cam_ccd_dir in contents:
-            shutil.move(os.path.join(payload_dir, cam_ccd_dir), sector_data_dir)
+            shutil.move(os.path.join(payload_dir, cam_ccd_dir), os.path.join(sector_data_dir, cam_ccd_dir))
 
     else:
         shutil.move(os.path.join(payload_dir, contents[0]), sector_data_dir)
