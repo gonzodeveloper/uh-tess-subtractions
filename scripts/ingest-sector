@@ -24,7 +24,7 @@ payload_dir = os.path.abspath(sys.argv[1])
 contents = os.listdir(payload_dir)
 sector_data_dir = DATA_DIR + payload_dir.split("/")[-1]
 sector_id = int(payload_dir.split("/")[-1][-4:])
-
+print(contents)
 # Set logger
 logger = logging.getLogger("ingest-sector")
 logger.setLevel(logging.INFO)
