@@ -150,7 +150,8 @@ try:
             cam_ccd_imgs = [os.path.basename(fits) for fits in glob(cam_ccd_dir + "hlsp_*.fits")]
 
             # Get center RA and DEC vals from img
-            with fits.open(cam_ccd_imgs[int(len(cam_ccd_imgs) / 2)]) as hdul:
+            filename = os.path.join(cam_ccd_dir, cam_ccd_imgs[int(len(cam_ccd_imgs) / 2)])
+            with fits.open(filename) as hdul:
                 hdr = hdul[0].header
                 ra = hdr['CRVAL1']
                 dec = hdr['CRVAL2']
@@ -185,7 +186,8 @@ try:
             cam_ccd_dir = sector_data_dir + f"/cam{i}-ccd{j}/"
             cam_ccd_imgs = [os.path.basename(fits) for fits in glob(cam_ccd_dir + "hlsp_*.fits")]
 
-            with fits.open(cam_ccd_imgs[int(len(cam_ccd_imgs) / 2)]) as hdul:
+            filename = os.path.join(cam_ccd_dir, cam_ccd_imgs[int(len(cam_ccd_imgs) / 2)])
+            with fits.open(filename) as hdul:
                 hdr = hdul[0].header
                 exptime = hdr["EXPTIME"]
 
