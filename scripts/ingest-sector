@@ -156,22 +156,8 @@ try:
                 ra = hdr['CRVAL1']
                 dec = hdr['CRVAL2']
 
-            # Build astro command
-            astrometry_cmd = f"/usr/local/astrometry/bin/solve-field " \
-                             f"--no-plots                            " \
-                             f"--index-xyls none                     " \
-                             f"--axy none                            " \
-                             f"--solved none                         " \
-                             f"--corr none                           " \
-                             f"--match none                          " \
-                             f"--rdls none                           " \
-                             f"--scale-low 20                        " \
-                             f"--scale-high 26                       " \
-                             f"--scale-units degwidth                " \
-                             f"--ra  {ra} --dec {dec}                " \
-                             f"--dir {cam_ccd_dir}"
             # Run build ref file
-            proc = subprocess.Popen([astrometry_cmd, cam_ccd_dir + "ref.fits"])
+            proc = subprocess.Popen([SCRIPT_DIR + "run_astrometry", ra, dec, cam_ccd_dir])
             ast_procs.append(proc)
 
     # Wait for refs to finish
