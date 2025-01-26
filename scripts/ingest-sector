@@ -157,7 +157,7 @@ try:
                 dec = hdr['CRVAL2']
 
             # Run build ref file
-            proc = subprocess.Popen([SCRIPT_DIR + "run_astrometry", str(ra), str(dec), cam_ccd_dir])
+            proc = subprocess.Popen([SCRIPT_DIR + "run-astrometry", str(ra), str(dec), cam_ccd_dir])
             ast_procs.append(proc)
 
     # Wait for refs to finish
