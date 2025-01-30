@@ -178,7 +178,7 @@ try:
                 exptime = hdr["EXPTIME"]
 
             # Run isis subtractions
-            proc = subprocess.Popen([SCRIPT_DIR + "calibrate-field", "--exptime", exptime, cam_ccd_dir])
+            proc = subprocess.Popen([SCRIPT_DIR + "calibrate-field", "--exptime", str(exptime), cam_ccd_dir])
             cal_procs.append(proc)
 
     # Wait for subtractions to finish
