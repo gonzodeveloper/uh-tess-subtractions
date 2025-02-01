@@ -119,7 +119,7 @@ try:
             shutil.copy(CONFIG_DIR + "default_config", cam_ccd_dir)
 
             # Run quick_smooth
-            proc = subprocess.Popen([SCRIPT_DIR + "quick-smooth", cam_ccd_dir])
+            proc = subprocess.Popen([SCRIPT_DIR + "quick-smooth", "-w", cam_ccd_dir])
             interp_procs.append(proc)
 
     # Wait for interps
@@ -252,7 +252,7 @@ try:
 
     # Update field info to database
     logger.info("logging images to database")
-    mjd_beg = 99999
+    mjd_beg = 999999
     mjd_end = 0
     for i in [1, 2, 3, 4]:
         for j in [1, 2, 3, 4]:
@@ -265,10 +265,6 @@ try:
                 wcs_str = WCS(img.header).to_header_string(relax=True)
                 # Escape single quotes for entry into DB
                 wcs_str = wcs_str.replace("'", "''")
-
-                # MJD Bounds for sector
-                mjd_beg = min(mjd_beg, img.header["MJD-BEG"])
-                mjd_end = max(mjd_end, img.header["MJD-END"])
 
             # First transaction for field
             with engine.begin() as conn:
@@ -299,13 +295,17 @@ try:
                                 f"({cadence}, {field_id}, '{img_file}', {mjd_beg}, {mjd_mid}, {mjd_end}, {exp_time})"
                     conn.execute(sqlalchemy.text(statement))
 
+                    # MJD Bounds for sector
+                    sec_mjd_beg = min(mjd_beg, img.header["MJD-BEG"])
+                    sec_mjd_end = max(mjd_end, img.header["MJD-END"])
+
     # Log sector in postgres
     logger.info("finishing database logging")
     with engine.begin() as conn:
         statatement = f"INSERT INTO sectors " \
                       f"(sector_id, mjd_start, mjd_finish) " \
                       f"VALUES " \
-                      f"({sector_id}, {mjd_beg}, {mjd_end})"
+                      f"({sector_id}, {sec_mjd_beg}, {sec_mjd_end})"
         conn.execute(sqlalchemy.text(statement))
 
 except Exception as e:
