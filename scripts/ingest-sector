@@ -119,7 +119,7 @@ try:
             shutil.copy(CONFIG_DIR + "default_config", cam_ccd_dir)
 
             # Run quick_smooth
-            proc = subprocess.Popen([SCRIPT_DIR + "quick-smooth", "-w", cam_ccd_dir])
+            proc = subprocess.Popen([SCRIPT_DIR + "quick-smooth", "-w", cam_ccd_dir, sector_id])
             interp_procs.append(proc)
 
     # Wait for interps
