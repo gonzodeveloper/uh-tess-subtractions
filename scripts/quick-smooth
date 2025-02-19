@@ -13,7 +13,7 @@ import os
 
 # ENV Settings
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
-LOG_DIR = "/data/projects/TESS/log"
+LOG_DIR = "/data/projects/TESS/log/"
 
 # Parse arguments
 parser = argparse.ArgumentParser("quick-smooth")

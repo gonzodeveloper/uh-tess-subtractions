@@ -19,6 +19,8 @@ import os
 pd.set_option('mode.chained_assignment', None)
 pd.set_option('display.width', 0)
 
+LOG_DIR = "/data/projects/TESS/log/"
+
 
 def apphot(df, data, app, skyin, skyout, exptime, correction=0):
     # Photutils tools
@@ -61,20 +63,30 @@ parser.add_argument("-d", "--dsig", type=float, default=5.0, help="sigma cut for
 parser.add_argument("-O", "--order", type=int, default=3, help="order polynomial for correction")
 parser.add_argument("--exptime", type=float, help="if set use this exposure time, if not, read header")
 parser.add_argument("cam_ccd_dir", type=str, help="cam/ccd field directory containing ref filer")
+parser.add_argument("sector_id", type=str, help="TESS sector ID")
+
 args = parser.parse_args()
 
 
 # Logger
-logger = logging.getLogger("tesspatrol-recal")
+# Set logger
+logger = logging.getLogger("calibrations")
 logger.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
 handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
+log_file = LOG_DIR + f"ingest_sector_{int(args.sector_id):04d}.log"
+handler = logging.FileHandler(log_file)
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 # Enter working dir
 cam_ccd_dir_path = os.path.abspath(args.cam_ccd_dir)
 os.chdir(cam_ccd_dir_path)
+
 # Reading img
 logger.debug(f"opening ref file at {os.path.join(cam_ccd_dir_path, 'ref.fits')}")
 with fits.open("ref.fits") as hdul:

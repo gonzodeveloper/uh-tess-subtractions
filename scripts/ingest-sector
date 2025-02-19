@@ -178,7 +178,7 @@ try:
                 exptime = hdr["EXPTIME"]
 
             # Run isis subtractions
-            proc = subprocess.Popen([SCRIPT_DIR + "calibrate-field", "--exptime", str(exptime), cam_ccd_dir])
+            proc = subprocess.Popen([SCRIPT_DIR + "calibrate-field", "--exptime", str(exptime), cam_ccd_dir, str(sector_id)])
             cal_procs.append(proc)
 
     # Wait for subtractions to finish
@@ -269,9 +269,9 @@ try:
             # First transaction for field
             with engine.begin() as conn:
                 statement = f"INSERT INTO fields " \
-                            f"(sector_id, camera_id, ccd_id, wcs_string) " \
+                            f"(sector_id, camera_id, ccd_id) " \
                             f"VALUES " \
-                            f"({sector_id}, {i}, {j}, '{wcs_str}']"
+                            f"({sector_id}, {i}, {j}]"
                 conn.execute(sqlalchemy.text(statement))
                 # Field ID needed for image table
                 statement = f"SELECT field_id FROM fields " \
