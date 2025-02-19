@@ -273,7 +273,7 @@ try:
             # Second transaction for images
             with engine.begin() as conn:
                 for img_file in cam_ccd_imgs:
-                    with fits.open(cam_ccd_dir + img) as hdul:
+                    with fits.open(cam_ccd_dir + img_file) as hdul:
                         hdr = hdul[0].header
                         exp_time = hdr["EXPTIME"]
                         cadence = hdr['CADENCE']
