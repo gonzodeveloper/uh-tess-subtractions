@@ -18,10 +18,8 @@ DATA_DIR = PROJECT_DIR + "/data/"
 LOG_DIR = PROJECT_DIR + "/log/"
 
 # Get sector dir from args
-payload_dir = os.path.abspath(sys.argv[1])
-contents = os.listdir(payload_dir)
-sector_data_dir = DATA_DIR + payload_dir.split("/")[-1]
-sector_id = int(payload_dir.split("/")[-1][-4:])
+sector_data_dir = os.path.abspath(sys.argv[1])
+sector_id = int(sector_data_dir.split("/")[-1][-4:])
 
 # Set logger
 logger = logging.getLogger("ingest-sector")
