@@ -70,9 +70,9 @@ for i in [1, 2, 3, 4]:
         # First transaction for field
         with engine.begin() as conn:
             statement = f"INSERT INTO fields " \
-                        f"(sector_id, camera_id, ccd_id) " \
+                        f"(sector_id, camera_id, ccd_id, field_path) " \
                         f"VALUES " \
-                        f"({sector_id}, {i}, {j}]"
+                        f"({sector_id}, {i}, {j}, '{cam_ccd_dir};)"
             conn.execute(sqlalchemy.text(statement))
             # Field ID needed for image table
             statement = f"SELECT field_id FROM fields " \
@@ -103,7 +103,7 @@ for i in [1, 2, 3, 4]:
 # Log sector in postgres
 logger.info("finishing database logging")
 with engine.begin() as conn:
-    statatement = f"INSERT INTO sectors " \
+    statement = f"INSERT INTO sectors " \
                   f"(sector_id, mjd_start, mjd_finish) " \
                   f"VALUES " \
                   f"({sector_id}, {sec_mjd_beg}, {sec_mjd_end})"
