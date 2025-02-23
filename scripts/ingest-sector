@@ -261,9 +261,9 @@ try:
             # First transaction for field
             with engine.begin() as conn:
                 statement = f"INSERT INTO fields " \
-                            f"(sector_id, camera_id, ccd_id, field_path) " \
+                            f"(sector_id, camera_id, ccd_id, field_path, exp_time) " \
                             f"VALUES " \
-                            f"({sector_id}, {i}, {j}, '{cam_ccd_dir}')"
+                            f"({sector_id}, {i}, {j}, '{cam_ccd_dir}', {exptime})"
                 conn.execute(sqlalchemy.text(statement))
                 # Field ID needed for image table
                 statement = f"SELECT field_id FROM fields " \
@@ -275,21 +275,20 @@ try:
                 for img_file in cam_ccd_imgs:
                     with fits.open(cam_ccd_dir + img_file) as hdul:
                         hdr = hdul[0].header
-                        exp_time = hdr["EXPTIME"]
                         cadence = hdr['CADENCE']
                         mjd_beg = hdr["MJD-BEG"]
                         mjd_end = hdr["MJD-END"]
                         mjd_mid = (mjd_beg + mjd_end) / 2
                     # Submit
                     statement = f"INSERT INTO images " \
-                                f"(cadence, field_id, filename, mjd_beg, mjd_mid, mjd_end, exp_time) " \
+                                f"(cadence, field_id, filename, mjd_beg, mjd_mid, mjd_end) " \
                                 f"VALUES " \
-                                f"({cadence}, {field_id}, '{img_file}', {mjd_beg}, {mjd_mid}, {mjd_end}, {exp_time})"
+                                f"({cadence}, {field_id}, '{img_file}', {mjd_beg}, {mjd_mid}, {mjd_end})"
                     conn.execute(sqlalchemy.text(statement))
 
                     # MJD Bounds for sector
-                    sec_mjd_beg = min(mjd_beg, img.header["MJD-BEG"])
-                    sec_mjd_end = max(mjd_end, img.header["MJD-END"])
+                    sec_mjd_beg = min(mjd_beg, hdr["MJD-BEG"])
+                    sec_mjd_end = max(mjd_end, hdr["MJD-END"])
 
     # Log sector in postgres
     logger.info("finishing database logging")
